@@ -35,10 +35,16 @@ for platform in "${PLATFORMS[@]}"; do
     
     output_path="$OUTPUT_DIR/$binary_name"
     
-    # 交叉编译
+    # 交叉编译（产物名为 filecodebox_GOOS_GOARCH[.exe]）
     env GOOS="$os" GOARCH="$arch" make build-cross
-    mv filecodebox "$output_path" 2>/dev/null || mv filecodebox.exe "$output_path" 2>/dev/null || true
-    
+    built="filecodebox_${os}_${arch}"
+    if [ "$os" = "windows" ]; then
+        built="${built}.exe"
+    fi
+    if [ -f "$built" ]; then
+        mv "$built" "$output_path"
+    fi
+
     if [ -f "$output_path" ]; then
         size=$(ls -lh "$output_path" | awk '{print $5}')
         echo "    ✅ $os/$arch 构建成功 ($size)"
