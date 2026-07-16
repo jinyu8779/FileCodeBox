@@ -56,13 +56,13 @@ type NFSConfig struct {
 
 // StorageConfig 存储配置
 type StorageConfig struct {
-	Type         string          `json:"file_storage"`                                    // local, s3, webdav, onedrive, nfs
-	StoragePath  string          `json:"storage_path"`                                    // 本地存储根目录
+	Type         string          `json:"file_storage" yaml:"type"`                         // local, s3, webdav, onedrive, nfs
+	StoragePath  string          `json:"storage_path" yaml:"storagepath"`                  // 本地存储根目录（勿与相对 uploads/ 混淆）
 	DirStructure string          `json:"dir_structure" yaml:"dir_structure"`               // 目录结构：none|date（空等同 none）
-	S3           *S3Config       `json:"s3,omitempty"`
-	WebDAV       *WebDAVConfig   `json:"webdav,omitempty"`
-	OneDrive     *OneDriveConfig `json:"onedrive,omitempty"`
-	NFS          *NFSConfig      `json:"nfs,omitempty"`
+	S3           *S3Config       `json:"s3,omitempty" yaml:"s3,omitempty"`
+	WebDAV       *WebDAVConfig   `json:"webdav,omitempty" yaml:"webdav,omitempty"`
+	OneDrive     *OneDriveConfig `json:"onedrive,omitempty" yaml:"onedrive,omitempty"`
+	NFS          *NFSConfig      `json:"nfs,omitempty" yaml:"nfs,omitempty"`
 }
 
 // NewS3Config 创建S3配置
@@ -277,14 +277,43 @@ func (sc *StorageConfig) GetDirStructure() string {
 	return "none"
 }
 
-// BuildUploadDir 按配置生成上传相对目录（不含文件名）
-// none: uploads
-// date: uploads/YYYY/MM/DD（服务器本地时间）
-func (sc *StorageConfig) BuildUploadDir(now time.Time) string {
-	if sc != nil && sc.GetDirStructure() == "date" {
-		return filepath.ToSlash(filepath.Join("uploads", now.Format("2006"), now.Format("01"), now.Format("02")))
+// storageRootIsUploadsDir 判断 storagepath 是否已经指向 uploads 目录本身。
+// 若是，则相对路径不再叠加一层 "uploads/"，避免出现 uploads/uploads/...
+func (sc *StorageConfig) storageRootIsUploadsDir() bool {
+	if sc == nil {
+		return false
 	}
-	return "uploads"
+	p := strings.TrimSpace(sc.StoragePath)
+	if p == "" {
+		return false
+	}
+	return strings.EqualFold(filepath.Base(filepath.Clean(p)), "uploads")
+}
+
+// BuildUploadDir 按配置生成上传相对目录（不含文件名，相对 storagepath/datapath）
+//
+// storagepath 为数据根（如 ./data）时：
+//   none → uploads
+//   date → uploads/YYYY/MM/DD
+//
+// storagepath 已是 .../uploads 时：
+//   none → ""（文件直接落在 storagepath 下）
+//   date → YYYY/MM/DD
+func (sc *StorageConfig) BuildUploadDir(now time.Time) string {
+	nestUploads := sc == nil || !sc.storageRootIsUploadsDir()
+
+	if sc != nil && sc.GetDirStructure() == "date" {
+		dateDir := filepath.Join(now.Format("2006"), now.Format("01"), now.Format("02"))
+		if nestUploads {
+			return filepath.ToSlash(filepath.Join("uploads", dateDir))
+		}
+		return filepath.ToSlash(dateDir)
+	}
+
+	if nestUploads {
+		return "uploads"
+	}
+	return ""
 }
 
 // IsLocal 判断是否为本地存储

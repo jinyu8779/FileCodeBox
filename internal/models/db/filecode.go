@@ -53,15 +53,16 @@ func (f *FileCode) IsExpired() bool {
 
 // GetFilePath 获取文件路径
 func (f *FileCode) GetFilePath() string {
-	// 新格式：FilePath（目录）+ UUIDFileName（文件名）
-	if f.FilePath != "" && f.UUIDFileName != "" {
-		// 检查FilePath是否已经包含了文件名（兼容性处理）
-		// 如果FilePath已经是完整路径（包含文件扩展名），直接返回
-		if strings.Contains(f.FilePath, f.UUIDFileName) {
-			return f.FilePath // 旧格式：FilePath包含完整路径
+	// 新格式：FilePath（目录，可为空表示落在存储根下）+ UUIDFileName（文件名）
+	if f.UUIDFileName != "" {
+		if f.FilePath != "" {
+			// 检查FilePath是否已经包含了文件名（兼容性处理）
+			if strings.Contains(f.FilePath, f.UUIDFileName) {
+				return f.FilePath
+			}
+			return filepath.Join(f.FilePath, f.UUIDFileName)
 		}
-		// 新格式：组合目录和文件名
-		return filepath.Join(f.FilePath, f.UUIDFileName)
+		return f.UUIDFileName
 	}
 
 	// 兼容旧格式：file_path 字段直接包含完整的相对路径

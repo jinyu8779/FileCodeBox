@@ -9,23 +9,29 @@ func TestBuildUploadDir(t *testing.T) {
 	now := time.Date(2026, 7, 15, 10, 30, 0, 0, time.Local)
 
 	cases := []struct {
-		name  string
-		style string
-		want  string
+		name        string
+		style       string
+		storagePath string
+		want        string
 	}{
-		{"empty", "", "uploads"},
-		{"none", "none", "uploads"},
-		{"NONE", "NONE", "uploads"},
-		{"date", "date", "uploads/2026/07/15"},
-		{"DATE", "DATE", "uploads/2026/07/15"},
+		{"empty", "", "", "uploads"},
+		{"none", "none", "", "uploads"},
+		{"NONE", "NONE", "", "uploads"},
+		{"date", "date", "", "uploads/2026/07/15"},
+		{"DATE", "DATE", "", "uploads/2026/07/15"},
+		// storagepath 已指向 uploads 时，不再套一层 uploads/
+		{"none_under_uploads_root", "none", "/data/FileCodeBox/uploads", ""},
+		{"date_under_uploads_root", "date", "/data/FileCodeBox/uploads", "2026/07/15"},
+		{"date_under_uploads_root_slash", "date", "/data/FileCodeBox/uploads/", "2026/07/15"},
+		{"date_under_data_root", "date", "/data/FileCodeBox/data", "uploads/2026/07/15"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			sc := &StorageConfig{DirStructure: tc.style}
+			sc := &StorageConfig{DirStructure: tc.style, StoragePath: tc.storagePath}
 			got := sc.BuildUploadDir(now)
 			if got != tc.want {
-				t.Fatalf("BuildUploadDir(%q) = %q, want %q", tc.style, got, tc.want)
+				t.Fatalf("BuildUploadDir(style=%q, path=%q) = %q, want %q", tc.style, tc.storagePath, got, tc.want)
 			}
 		})
 	}

@@ -1095,6 +1095,46 @@ const Dashboard = {
     setupFileUpload() {
         this.setupFileInput();
         this.setupDragAndDrop();
+        this.setupClipboardImage();
+    },
+
+    /**
+     * 点击按钮：读取剪贴板中的图片并作为待上传文件
+     */
+    setupClipboardImage() {
+        const btn = document.getElementById('clipboard-image-btn');
+        const fileInput = document.getElementById('file-input');
+        const folderInput = document.getElementById('folder-input');
+        const uploadText = document.getElementById('upload-text');
+        if (!btn || !fileInput || typeof ClipboardImage === 'undefined') return;
+
+        btn.addEventListener('click', async () => {
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '读取中...';
+            try {
+                const file = await ClipboardImage.readImageFile();
+                if (!file || !ClipboardImage.isImageType(file.type)) {
+                    throw new Error('剪切板中的内容不是图片文件');
+                }
+
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                if (folderInput) folderInput.value = '';
+                this.pendingFolderFiles = null;
+                if (uploadText) {
+                    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+                    uploadText.textContent = `已选择: ${file.name} (${fileSizeMB}MB)`;
+                }
+                showNotification('已从剪贴板载入图片，请点击上传完成分享', 'success');
+            } catch (err) {
+                showNotification(err.message || '读取剪贴板图片失败', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
     },
 
     /**

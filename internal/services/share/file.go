@@ -352,13 +352,29 @@ func (s *Service) ShareFileWithAuth(req models.ShareFileRequest) (*models.ShareF
 	// 生成文件代码
 	code := generateRandomCode()
 
-	// 生成文件路径（按存储目录结构配置）
+	// 生成文件路径（按 storage.dir_structure / storagepath 生成相对目录）
 	uuidFileName := fmt.Sprintf("%s-%s", code, fileHeader.Filename)
 	directoryPath := "uploads"
+	dirStructure := "none"
 	if s.manager != nil && s.manager.Storage != nil {
 		directoryPath = s.manager.Storage.BuildUploadDir(time.Now())
+		dirStructure = s.manager.Storage.GetDirStructure()
 	}
-	fullFilePath := filepath.ToSlash(filepath.Join(directoryPath, uuidFileName))
+	fullFilePath := uuidFileName
+	if directoryPath != "" && directoryPath != "." {
+		fullFilePath = filepath.ToSlash(filepath.Join(directoryPath, uuidFileName))
+	}
+	logrus.WithFields(logrus.Fields{
+		"dir_structure":  dirStructure,
+		"directory_path": directoryPath,
+		"save_path":      fullFilePath,
+		"storage_path": func() string {
+			if s.manager != nil && s.manager.Storage != nil {
+				return s.manager.Storage.StoragePath
+			}
+			return ""
+		}(),
+	}).Info("share upload: resolved storage path")
 
 	// 保存文件到存储系统
 	result := s.storageService.SaveFileWithResult(fileHeader, fullFilePath)

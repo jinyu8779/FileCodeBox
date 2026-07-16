@@ -26,6 +26,7 @@ const FileUpload = {
     init() {
         this.setupFileInput();
         this.setupDragAndDrop();
+        this.setupClipboardImage();
         this.setupFormSubmit();
         this.loadConfig();
     },
@@ -114,6 +115,44 @@ const FileUpload = {
         }
     },
     
+    /**
+     * 点击按钮：读取剪贴板中的图片并作为待上传文件
+     */
+    setupClipboardImage() {
+        const btn = document.getElementById('clipboard-image-btn');
+        if (!btn || typeof ClipboardImage === 'undefined') return;
+
+        btn.addEventListener('click', async () => {
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '读取中...';
+            try {
+                const file = await ClipboardImage.readImageFile();
+                if (!file || !ClipboardImage.isImageType(file.type)) {
+                    throw new Error('剪切板中的内容不是图片文件');
+                }
+                this.validateFile(file);
+
+                const fileInput = document.getElementById('file-input');
+                const folderInput = document.getElementById('folder-input');
+                if (fileInput) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    fileInput.files = dt.files;
+                }
+                if (folderInput) folderInput.value = '';
+                this.currentFolderFiles = null;
+                this.updateFileDisplay(file);
+                showNotification('已从剪贴板载入图片，请点击「上传文件」完成上传', 'success');
+            } catch (err) {
+                showNotification(err.message || '读取剪贴板图片失败', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+    },
+
     /**
      * 设置拖拽上传
      */

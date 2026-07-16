@@ -289,6 +289,14 @@
     transition: all var(--transition-base);
     text-decoration: none;
     display: inline-block;
+    font-family: inherit;
+}
+
+.upload-option-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .upload-option-btn:hover {
