@@ -95,7 +95,7 @@ for platform in "${PLATFORMS[@]}"; do
     
     print_info "构建 $os/$arch..."
     
-    binary_name="filecodebox-${VERSION}-${os}-${arch}"
+    binary_name="filecodebox_${os}_${arch}"
     if [ "$os" = "windows" ]; then
         binary_name="${binary_name}.exe"
     fi
