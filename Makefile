@@ -27,27 +27,37 @@ LDFLAGS := -ldflags "\
 	-X 'github.com/zy84338719/filecodebox/internal/models/service.BuildTime=$(DATE)' \
 	-w -s"
 
+# 目标平台与产物名：filecodebox_GOOS_GOARCH[.exe]
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+BINARY_EXT :=
+ifeq ($(GOOS),windows)
+BINARY_EXT := .exe
+endif
+BINARY_NAME := filecodebox_$(GOOS)_$(GOARCH)$(BINARY_EXT)
+
 # 默认目标
 all: build
 
 # 编译项目（带版本信息）
 build:
-	@echo "Building FileCodeBox $(VERSION) ($(COMMIT)) at $(DATE)"
-	go build $(LDFLAGS) -o filecodebox .
+	@echo "Building FileCodeBox $(VERSION) ($(COMMIT)) at $(DATE) -> $(BINARY_NAME)"
+	go build $(LDFLAGS) -o $(BINARY_NAME) .
 
 # 交叉编译（支持环境变量设置平台）
+# 用法：GOOS=linux GOARCH=arm64 make build-cross
 build-cross:
-	@echo "Cross-compiling FileCodeBox $(VERSION) for $(GOOS)/$(GOARCH)"
-	env GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build $(LDFLAGS) -o filecodebox .
+	@echo "Cross-compiling FileCodeBox $(VERSION) for $(GOOS)/$(GOARCH) -> $(BINARY_NAME)"
+	env GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build $(LDFLAGS) -o $(BINARY_NAME) .
 
 # 发布构建（优化编译）
 release:
-	@echo "Building FileCodeBox release $(VERSION) ($(COMMIT)) at $(DATE)"
-	CGO_ENABLED=0 go build $(LDFLAGS) -a -installsuffix cgo -o filecodebox .
+	@echo "Building FileCodeBox release $(VERSION) ($(COMMIT)) at $(DATE) -> $(BINARY_NAME)"
+	CGO_ENABLED=0 go build $(LDFLAGS) -a -installsuffix cgo -o $(BINARY_NAME) .
 
 # 运行项目
 run: build
-	./filecodebox
+	./$(BINARY_NAME)
 
 # 显示版本信息
 version:
@@ -70,7 +80,7 @@ dev:
 
 # 清理编译文件
 clean:
-	rm -f filecodebox
+	rm -f filecodebox filecodebox_*
 	go clean
 
 # 整理依赖
@@ -115,7 +125,8 @@ docs:
 # 查看帮助
 help:
 	@echo "可用的make命令："
-	@echo "  build       - 编译项目（带版本信息）"
+	@echo "  build       - 编译项目（产物：filecodebox_\$$GOOS_\$$GOARCH）"
+	@echo "  build-cross - 交叉编译（GOOS/GOARCH 环境变量，产物同上）"
 	@echo "  release     - 发布构建（优化编译）"
 	@echo "  run         - 编译并运行项目"
 	@echo "  version     - 显示版本信息"
