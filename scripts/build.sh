@@ -81,15 +81,14 @@ LDFLAGS="$LDFLAGS -X 'github.com/zy84338719/filecodebox/internal/models/service.
 OUTPUT_DIR="build"
 mkdir -p "$OUTPUT_DIR"
 
-# 构建二进制文件
-BINARY_NAME="filecodebox"
-
-# 检查是否指定了目标平台
+# 构建二进制文件：filecodebox_GOOS_GOARCH[.exe]
+TARGET_OS="${GOOS:-$(go env GOOS)}"
+TARGET_ARCH="${GOARCH:-$(go env GOARCH)}"
+BINARY_NAME="filecodebox_${TARGET_OS}_${TARGET_ARCH}"
+if [ "$TARGET_OS" = "windows" ]; then
+    BINARY_NAME="${BINARY_NAME}.exe"
+fi
 if [ -n "$GOOS" ] && [ -n "$GOARCH" ]; then
-    BINARY_NAME="${BINARY_NAME}-${GOOS}-${GOARCH}"
-    if [ "$GOOS" = "windows" ]; then
-        BINARY_NAME="${BINARY_NAME}.exe"
-    fi
     print_info "交叉编译目标: $GOOS/$GOARCH"
 fi
 
