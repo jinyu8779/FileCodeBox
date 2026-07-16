@@ -93,15 +93,29 @@ make dev-frontend  # 前端 :5173
 ### 3. 生产构建
 
 ```bash
-# 完整构建
+# 完整构建（本机架构，前后端打进同一个可执行文件）
 make build
-
-# 或分步构建
-make build-frontend  # 构建前端
-make build-backend   # 构建后端
-make copy-frontend   # 复制前端到 backend/static/
+# 产物：backend/bin/server
 ```
 
+交叉编译（指定操作系统 / CPU 架构）：
+
+```bash
+# Linux ARM64（常见服务器 / 国产 ARM 机器）
+GOOS=linux GOARCH=arm64 make build-cross
+
+# Linux AMD64（x86_64）
+GOOS=linux GOARCH=amd64 make build-cross
+
+# macOS Apple Silicon
+GOOS=darwin GOARCH=arm64 make build-cross
+
+# Windows AMD64
+GOOS=windows GOARCH=amd64 make build-cross
+```
+
+常用组合：`GOOS` = `linux` / `darwin` / `windows`；`GOARCH` = `amd64` / `arm64` / `arm`。  
+`build-cross` 会先构建并嵌入前端，产物仍在 `backend/bin/server`。
 ### 4. Docker 部署
 
 ```bash

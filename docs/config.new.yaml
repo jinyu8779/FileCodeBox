@@ -18,6 +18,11 @@ transfer:
     chunk_size: 2097152
     max_save_seconds: 0
     require_login: 0
+    max_folder_files: 100
+    share_response_type: code  # code=提取码 / url=完整下载地址
+    default_expire_style: day    # minute/hour/day/week/month/year/count/forever
+    default_expire_value: 1
+    allow_modify_expire: 1       # 0=禁止上传者修改过期时间，1=允许
   download:
     enable_concurrent_download: 1
     max_concurrent_downloads: 10
@@ -45,11 +50,13 @@ ui:
 
 mcp:
   enable_mcp_server: 1
-  mcp_port: "12345"
+  mcp_port: "12346"
   mcp_host: "127.0.0.1"
 
 storage:
   type: "local"
+  storage_path: ""
+  dir_structure: none  # none=平铺到 uploads/；date=按服务器日期存 uploads/YYYY/MM/DD/
   local:
     path: "./uploads"
   s3:
