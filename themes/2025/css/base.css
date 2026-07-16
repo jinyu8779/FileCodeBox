@@ -109,9 +109,20 @@ body.landing-page .container {
     }
 }
 
-/* 动态背景样式 - 由JavaScript动态设置 */
+/* 动态背景：用伪元素承载透明度，避免给 body 设 opacity（会导致 video 控件点不中） */
 body.custom-background {
+    background-image: none;
+}
+
+body.custom-background::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background-image: var(--background-image);
+    background-size: cover;
+    background-position: center;
     opacity: var(--background-opacity, 1);
 }
 
@@ -198,4 +209,201 @@ body.custom-background {
     margin: 10px 0;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
+}
+
+/* 获取分享：文件信息与预览 */
+.share-file-card {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.share-file-actions {
+    margin-top: 15px;
+}
+
+.share-download-btn {
+    background: #28a745;
+    color: #fff;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+.share-preview-root {
+    margin-top: 16px;
+}
+
+.share-preview-status,
+.share-preview-empty,
+.share-preview-error {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.share-preview-status {
+    background: rgba(13, 110, 253, 0.08);
+    color: #0d47a1;
+}
+
+.share-preview-empty {
+    background: rgba(108, 117, 125, 0.1);
+    color: #495057;
+}
+
+.share-preview-error {
+    background: rgba(220, 53, 69, 0.1);
+    color: #842029;
+}
+
+.share-preview-panel {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 12px;
+    background: #fafbfc;
+    position: relative;
+    z-index: 2;
+    isolation: isolate;
+    pointer-events: auto;
+}
+
+.share-preview-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.share-preview-media {
+    display: block;
+    max-width: 100%;
+    max-height: 420px;
+    margin: 0 auto;
+    border-radius: 8px;
+    background: #000;
+}
+
+img.share-preview-media {
+    background: transparent;
+    object-fit: contain;
+}
+
+.share-video-wrap {
+    position: relative;
+    z-index: 3;
+    pointer-events: auto;
+}
+
+video.share-preview-media {
+    width: 100%;
+    position: relative;
+    z-index: 3;
+    pointer-events: auto;
+    /* 避免祖先 filter/transform 场景下控件命中异常 */
+    transform: translateZ(0);
+}
+
+.share-video-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.share-video-play-btn {
+    border: none;
+    background: #0d6efd;
+    color: #fff;
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: auto;
+    position: relative;
+    z-index: 4;
+}
+
+.share-video-play-btn:hover {
+    background: #0b5ed7;
+}
+
+.share-zip-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.share-zip-item {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f1f3f5;
+    font-size: 13px;
+}
+
+.share-zip-item:last-child {
+    border-bottom: none;
+}
+
+.share-zip-item.is-previewable:hover {
+    background: rgba(13, 110, 253, 0.04);
+}
+
+.share-zip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.share-zip-size {
+    color: #868e96;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.share-zip-no-preview {
+    color: #adb5bd;
+    font-size: 12px;
+}
+
+.share-zip-preview-btn {
+    border: none;
+    background: #0d6efd;
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.share-zip-preview-btn:hover {
+    background: #0b5ed7;
+}
+
+.share-zip-media {
+    margin-top: 12px;
+}
+
+.share-preview-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #868e96;
+    line-height: 1.4;
+}
+
+.share-video-error {
+    margin-top: 8px;
 }

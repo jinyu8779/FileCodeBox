@@ -144,7 +144,9 @@
     .dark-mode .container {
         background: var(--card-bg);
         color: var(--text-color);
-        backdrop-filter: blur(20px);
+        /* 避免 blur 导致 video 原生控件无法点击 */
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
     
     .dark-mode .form-control {

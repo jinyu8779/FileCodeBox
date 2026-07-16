@@ -242,19 +242,22 @@ const ShareManager = {
     },
     
     /**
-     * 显示文件结果
+     * 显示文件结果（含图片/视频预览，zip 可解压后单项预览）
      */
     showFileResult(detail) {
+        if (typeof SharePreview !== 'undefined' && SharePreview.render) {
+            SharePreview.render(detail);
+            return;
+        }
         const fileSize = detail.size ? formatFileSize(detail.size) : '未知';
         const fileName = detail.name ? escapeHtml(detail.name) : '未知文件';
-        
         showResult(`
             <h3>📁 文件信息</h3>
-            <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+            <div class="share-file-card">
                 <p><strong>文件名:</strong> ${fileName}</p>
                 <p><strong>大小:</strong> ${fileSize}</p>
-                <div style="margin-top: 15px;">
-                    <a href="${detail.text}" class="btn" download style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">📥 下载文件</a>
+                <div class="share-file-actions">
+                    <a href="${escapeHtml(detail.text)}" class="btn share-download-btn" download>📥 下载文件</a>
                 </div>
             </div>
         `);

@@ -292,18 +292,39 @@ class FileCodeBoxApp {
         }
     }
     
+    /** 给 css 颜色补上 alpha（用于容器透明度，避免改 body.opacity） */
+    withAlpha(color, alpha) {
+        const a = Math.max(0, Math.min(1, alpha));
+        const m = String(color).match(
+            /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*[\d.]+)?\s*\)/i
+        );
+        if (m) {
+            return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${a})`;
+        }
+        if (/^#([0-9a-f]{6})$/i.test(color)) {
+            const hex = color.slice(1);
+            const r = parseInt(hex.slice(0, 2), 16);
+            const g = parseInt(hex.slice(2, 4), 16);
+            const b = parseInt(hex.slice(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${a})`;
+        }
+        return color;
+    }
+
     /**
      * 应用模板配置（从后端传递的动态样式）
      */
     applyTemplateConfig() {
         if (window.AppConfig) {
-            // 应用不透明度
+            // 应用不透明度：切勿设置 body.style.opacity（会导致原生 video 控件无法点击）
                 if (window.AppConfig.opacity && window.AppConfig.opacity !== '{{opacity}}') {
-                    // 如果 opacity 为字符串 '0' 或 '0.0'，不应把整个页面设为完全透明。
-                    // 只在解析为数字且大于0时应用不透明度设置。
                     const op = parseFloat(window.AppConfig.opacity);
-                    if (!isNaN(op) && op > 0) {
-                        document.body.style.opacity = op;
+                    if (!isNaN(op) && op > 0 && op <= 1) {
+                        const container = document.querySelector('.landing-container, .container');
+                        if (container) {
+                            const bg = getComputedStyle(container).backgroundColor || 'rgba(255,255,255,0.95)';
+                            container.style.backgroundColor = this.withAlpha(bg, op);
+                        }
                     }
                 }
             
