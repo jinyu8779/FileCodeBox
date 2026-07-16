@@ -297,8 +297,17 @@ func (nfs *NFSStorageStrategy) ServeFile(c *gin.Context, filePath string, fileNa
 		return fmt.Errorf("文件不存在: %s", filePath)
 	}
 
-	// 设置文件下载头
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+	disposition := "attachment"
+	if c.Query("preview") == "1" || c.Query("inline") == "1" {
+		disposition = "inline"
+	}
+	safeName := strings.ReplaceAll(fileName, `"`, "")
+	c.Header("Content-Disposition", fmt.Sprintf(`%s; filename="%s"`, disposition, safeName))
+	if ctype := contentTypeByName(fileName); ctype != "" {
+		c.Header("Content-Type", ctype)
+	} else if ctype := contentTypeByName(filePath); ctype != "" {
+		c.Header("Content-Type", ctype)
+	}
 	c.File(filePath)
 	return nil
 }

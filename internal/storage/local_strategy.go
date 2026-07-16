@@ -3,9 +3,11 @@ package storage
 import (
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -151,10 +153,56 @@ func (ls *LocalStorageStrategy) ServeFile(c *gin.Context, filePath string, fileN
 		return fmt.Errorf("文件不存在: %s", filePath)
 	}
 
-	// 设置文件下载头
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+	// 预览模式（inline）便于 <video>/<img> 流式播放；默认仍为附件下载
+	disposition := "attachment"
+	if c.Query("preview") == "1" || c.Query("inline") == "1" {
+		disposition = "inline"
+	}
+	safeName := strings.ReplaceAll(fileName, `"`, "")
+	c.Header("Content-Disposition", fmt.Sprintf(`%s; filename="%s"`, disposition, safeName))
+
+	// 显式 Content-Type，避免部分环境把视频当成 octet-stream 导致无法播放
+	if ctype := contentTypeByName(fileName); ctype != "" {
+		c.Header("Content-Type", ctype)
+	} else if ctype := contentTypeByName(filePath); ctype != "" {
+		c.Header("Content-Type", ctype)
+	}
+
 	c.File(filePath)
 	return nil
+}
+
+func contentTypeByName(name string) string {
+	ext := strings.ToLower(filepath.Ext(name))
+	if ext == "" {
+		return ""
+	}
+	if ctype := mime.TypeByExtension(ext); ctype != "" {
+		return ctype
+	}
+	// 常见类型兜底（部分精简系统 mime 库不全）
+	switch ext {
+	case ".mp4", ".m4v":
+		return "video/mp4"
+	case ".webm":
+		return "video/webm"
+	case ".ogg", ".ogv":
+		return "video/ogg"
+	case ".mov":
+		return "video/quicktime"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	case ".svg":
+		return "image/svg+xml"
+	default:
+		return ""
+	}
 }
 
 // GenerateFileURL 生成文件URL

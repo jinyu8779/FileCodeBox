@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/zy84338719/filecodebox/internal/common"
@@ -327,12 +328,6 @@ func (h *ShareHandler) GetFile(c *gin.Context) {
 		return
 	}
 
-	// 更新使用次数
-	if err := h.service.UpdateFileUsage(fileCode.Code); err != nil {
-		// 记录错误但不阻止下载
-		logrus.WithError(err).Error("更新文件使用次数失败")
-	}
-
 	response := web.FileInfoResponse{
 		Code:        fileCode.Code,
 		Name:        getDisplayFileName(fileCode),
@@ -342,10 +337,14 @@ func (h *ShareHandler) GetFile(c *gin.Context) {
 	}
 
 	if fileCode.Text != "" {
-		// 返回文本内容
+		// 文本内容直接在查询接口返回，此处计一次使用
+		if err := h.service.UpdateFileUsage(fileCode.Code); err != nil {
+			logrus.WithError(err).Error("更新文件使用次数失败")
+		}
 		response.Text = fileCode.Text
 	} else {
-		// 返回文件下载链接
+		// 文件只返回下载链接：查询本身不计次，避免「获取→预览/下载」连扣两次
+		// （次数为 1 时会导致视频预览下载失败）
 		response.Text = "/share/download?code=" + fileCode.Code
 	}
 
@@ -371,7 +370,7 @@ func (h *ShareHandler) GetFileAPI(c *gin.Context) {
 		return
 	}
 
-	fileCode, _, ok := h.fetchFileForRequest(c, code)
+	fileCode, ok := h.lookupFileForRequest(c, code)
 	if !ok {
 		return
 	}
@@ -385,6 +384,9 @@ func (h *ShareHandler) GetFileAPI(c *gin.Context) {
 	}
 
 	if fileCode.Text != "" {
+		if err := h.service.UpdateFileUsage(fileCode.Code); err != nil {
+			logrus.WithError(err).Error("更新文件使用次数失败")
+		}
 		response.Text = fileCode.Text
 	} else {
 		response.Text = "/share/download?code=" + fileCode.Code
@@ -460,7 +462,7 @@ func (h *ShareHandler) DownloadFileAPI(c *gin.Context) {
 	_ = h.streamFileResponse(c, fileCode, userID)
 }
 
-func (h *ShareHandler) fetchFileForRequest(c *gin.Context, code string) (*models.FileCode, *uint, bool) {
+func (h *ShareHandler) lookupFileForRequest(c *gin.Context, code string) (*models.FileCode, bool) {
 	var userID *uint
 	if uid, exists := c.Get("user_id"); exists {
 		id := uid.(uint)
@@ -470,14 +472,44 @@ func (h *ShareHandler) fetchFileForRequest(c *gin.Context, code string) (*models
 	fileCode, err := h.service.GetFileByCodeWithAuth(code, userID)
 	if err != nil {
 		common.NotFoundResponse(c, err.Error())
+		return nil, false
+	}
+	return fileCode, true
+}
+
+func (h *ShareHandler) fetchFileForRequest(c *gin.Context, code string) (*models.FileCode, *uint, bool) {
+	var userID *uint
+	if uid, exists := c.Get("user_id"); exists {
+		id := uid.(uint)
+		userID = &id
+	}
+
+	fileCode, ok := h.lookupFileForRequest(c, code)
+	if !ok {
 		return nil, nil, false
 	}
 
-	if err := h.service.UpdateFileUsage(fileCode.Code); err != nil {
-		logrus.WithError(err).Error("更新文件使用次数失败")
+	// 预览（preview/inline）或 Range 续传不消耗次数，避免 <video> 多次请求把次数扣光
+	if shouldCountDownloadUsage(c) {
+		if err := h.service.UpdateFileUsage(fileCode.Code); err != nil {
+			logrus.WithError(err).Error("更新文件使用次数失败")
+		}
 	}
 
 	return fileCode, userID, true
+}
+
+func shouldCountDownloadUsage(c *gin.Context) bool {
+	if c.Query("preview") == "1" || c.Query("inline") == "1" {
+		return false
+	}
+	// 非首段 Range（续传/拖动进度）不计次
+	if rng := c.GetHeader("Range"); rng != "" {
+		if !(strings.HasPrefix(rng, "bytes=0-") || rng == "bytes=0") {
+			return false
+		}
+	}
+	return true
 }
 
 func (h *ShareHandler) tryReturnText(c *gin.Context, fileCode *models.FileCode, userID *uint) bool {

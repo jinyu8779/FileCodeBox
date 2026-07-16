@@ -396,30 +396,45 @@ func (s *Service) ShareFileWithAuth(req models.ShareFileRequest) (*models.ShareF
 		expiredAt = nil                // 不设置时间过期
 		expiredCount = req.ExpireValue // 设置剩余次数
 	case "minute":
-		// 按分钟限制
 		if req.ExpireValue > 0 {
 			t := time.Now().Add(time.Duration(req.ExpireValue) * time.Minute)
 			expiredAt = &t
 		}
-		expiredCount = -1 // 时间限制时，不限制次数
+		expiredCount = -1
 	case "hour":
-		// 按小时限制
 		if req.ExpireValue > 0 {
 			t := time.Now().Add(time.Duration(req.ExpireValue) * time.Hour)
 			expiredAt = &t
 		}
-		expiredCount = -1 // 时间限制时，不限制次数
+		expiredCount = -1
 	case "day":
-		// 按天限制
 		if req.ExpireValue > 0 {
 			t := time.Now().Add(time.Duration(req.ExpireValue) * 24 * time.Hour)
 			expiredAt = &t
 		}
-		expiredCount = -1 // 时间限制时，不限制次数
+		expiredCount = -1
+	case "week":
+		if req.ExpireValue > 0 {
+			t := time.Now().Add(time.Duration(req.ExpireValue) * 7 * 24 * time.Hour)
+			expiredAt = &t
+		}
+		expiredCount = -1
+	case "month":
+		if req.ExpireValue > 0 {
+			t := time.Now().AddDate(0, req.ExpireValue, 0)
+			expiredAt = &t
+		}
+		expiredCount = -1
+	case "year":
+		if req.ExpireValue > 0 {
+			t := time.Now().AddDate(req.ExpireValue, 0, 0)
+			expiredAt = &t
+		}
+		expiredCount = -1
 	default:
-		// 默认永久有效
+		// 未知样式：按永久处理（切勿写 0，IsExpired 会把 0 当成已用尽）
 		expiredAt = nil
-		expiredCount = 0
+		expiredCount = -1
 	}
 
 	// 创建文件分享记录

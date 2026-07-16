@@ -200,12 +200,18 @@ func (ws *WebDAVStorageStrategy) ServeFile(c *gin.Context, filePath string, file
 		return fmt.Errorf("读取文件失败: %v", err)
 	}
 
-	// 设置响应头
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
-	c.Header("Content-Type", "application/octet-stream")
+	disposition := "attachment"
+	if c.Query("preview") == "1" || c.Query("inline") == "1" {
+		disposition = "inline"
+	}
+	safeName := strings.ReplaceAll(fileName, `"`, "")
+	c.Header("Content-Disposition", fmt.Sprintf(`%s; filename="%s"`, disposition, safeName))
 
-	// 返回文件内容
-	c.Data(http.StatusOK, "application/octet-stream", data)
+	ctype := contentTypeByName(fileName)
+	if ctype == "" {
+		ctype = "application/octet-stream"
+	}
+	c.Data(http.StatusOK, ctype, data)
 	return nil
 }
 
